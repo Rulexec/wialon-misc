@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset='utf-8'>
+	<title>WH-238 checker</title>
+
+	<script src='https://hst-api.wialon.com/adfurl1530089833/wsdk/script/wialon.js'></script>
+
+	<script>(function(){
+
+onDomReady(function() {
+	var sdkStateEl = document.getElementById('sdk_state'),
+	    frameStateEl = document.getElementById('frame_state');
+
+	var sdkCheckIntervalId = setInterval(function() {
+		if (!window.qx) return;
+		if (!window.qx.$$loader.scriptLoaded) return;
+		if (typeof wialon === 'undefined') return;
+
+		clearInterval(sdkCheckIntervalId);
+
+		var ok = (typeof wialon.core.PostMessage._postMessagePrefixCounter === 'number');
+
+		setText(sdkStateEl, ok);
+	}, 5);
+
+	window.addEventListener('message', function(event) {
+		console.log(event.data);
+
+		var json;
+
+		try {
+			json = JSON.parse(event.data)
+		} catch (e) { console.error(e); return; }
+
+		if (!json) return;
+
+		if (json.id === 0 && json.source === frameUrl && !json.error) {
+			setText(frameStateEl, !!json.chunkedResult);
+		}
+	});
+
+	var frameUrl = 'https://hst-api.wialon.com/wialon/post.html';
+
+	var iframe = document.createElement('iframe');
+	iframe.style.display = 'none';
+	iframe.addEventListener('load', function() {
+		var str = "{\"id\": 0, \"source\":\"" + frameUrl + "\", \"chunkedPrefix\": \"posthtml1:\", \"enableChunkedResult\": true}";
+
+		iframe.contentWindow.postMessage(str, '*');
+	});
+	iframe.src = frameUrl;
+	document.body.appendChild(iframe);
+
+	function setText(el, isOk) {
+		if (isOk) {
+			el.style.color = '#0fa50f';
+			el.innerText = 'OK';
+		} else {
+			el.style.color = '#f31919';
+			el.innerText = 'FAIL';
+		}
+	}
+});
+
+function onDomReady(fun, options) {
+	var isCalled = false;
+
+	if (document.readyState === 'complete' || (options && options.allowInteractive && document.readyState === 'interactive')) {
+		fun();
+	} else {
+		document.addEventListener('readystatechange', checkLoad);
+		document.addEventListener('DOMContentLoaded', checkLoad);
+	}
+
+	function checkLoad() {
+		if (isCalled) return;
+
+		if (document.readyState === 'complete' || (options && options.allowInteractive && document.readyState === 'interactive')) {
+			isCalled = true;
+			fun();
+		}
+	}
+};
+	})();</script>
+</head>
+<body>
+
+<p>SDK: <span id='sdk_state' style='color:#69695a;'>Loading...</span></p>
+<p>Frame: <span id='frame_state' style='color:#69695a;'>Loading...</span></p>
+
+</body>
+</html>
